@@ -129,10 +129,6 @@ The tests do not contact Gmail or a model:
 pytest
 ```
 
-## Porting to MySudo
-
-Implement the three methods in `EmailRetrieval`, performing remote encrypted retrieval and local decryption inside that adapter. Change `mcp_server.backend()` to construct it. The MCP schemas and agent loop stay unchanged. This keeps provider authentication, ciphertext retrieval, and key handling below the model boundary.
-
 ## Current POC limits
 
 - HTML-to-text conversion is intentionally basic; attachments are ignored.
