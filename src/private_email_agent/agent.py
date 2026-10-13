@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from typing import Any
 
@@ -32,20 +33,29 @@ class EmailAgent:
 
         await self._bootstrap_search(question, session, messages)
 
+        model_latency_ms = 0.0
         for step in range(1, self.max_steps + 1):
             started = time.perf_counter()
             reply = await self.llm.complete(messages, tools)
+            latency_ms = round((time.perf_counter() - started) * 1000, 1)
+            model_latency_ms = round(model_latency_ms + latency_ms, 1)
             self.telemetry.emit(
                 "model_call",
                 step=step,
-                latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                latency_ms=latency_ms,
                 tool_call_count=len(reply.get("tool_calls") or []),
             )
             messages.append(reply)
             calls = reply.get("tool_calls") or []
             if not calls:
                 answer = reply.get("content") or "I could not produce an answer."
-                self.telemetry.emit("final_answer", step=step, answer=answer)
+                self.telemetry.emit(
+                    "final_answer",
+                    step=step,
+                    answer=answer,
+                    model_latency_ms=model_latency_ms,
+                )
+                print(f"model latency: {model_latency_ms} ms", file=sys.stderr)
                 return answer
             for call in calls:
                 await self._invoke_model_tool(call, step, allowed, session, messages)
